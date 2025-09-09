@@ -151,7 +151,7 @@ pub const ThreadPool = struct {
                 }
             }
 
-            std.time.sleep(to_sleep);
+            std.Thread.sleep(to_sleep);
         }
     }
 
