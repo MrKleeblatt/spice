@@ -185,7 +185,8 @@ const Runner = struct {
         std.log.info("\n", .{});
 
         if (self.csv) |csv| {
-            try csv.writer().print("{s},{d}\n", .{ name, mean });
+            const str = try std.fmt.allocPrint(self.allocator, "{s},{d}\n", .{ name, mean });
+            _ = try csv.write(str);
         }
     }
 };
