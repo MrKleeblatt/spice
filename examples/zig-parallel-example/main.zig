@@ -113,7 +113,7 @@ const SpiceTreeSum = struct {
         if (self.num_threads == 1) {
             try std.fmt.format(writer, "Spice 1 thread", .{});
         } else {
-            try std.fmt.format(writer, "Spice {} threads", .{self.num_threads});
+            try std.fmt.format(writer, "Spice {d} threads", .{self.num_threads});
         }
     }
 
@@ -140,15 +140,13 @@ const Runner = struct {
     csv: ?std.fs.File = null,
 
     pub fn run(self: *Runner, bench: anytype, input: anytype) !void {
-        var out = std.io.getStdOut();
-
         var name_buf: [255]u8 = undefined;
         var fbs = std.io.fixedBufferStream(&name_buf);
         try bench.writeName(fbs.writer());
         const name = fbs.getWritten();
 
-        try out.writer().print("{s}:\n", .{name});
-        try out.writer().print("  Warming up...\n", .{});
+        std.log.info("{s}:\n", .{name});
+        std.log.info("  Warming up...\n", .{});
 
         bench.init(self.allocator);
         defer bench.deinit();
@@ -160,14 +158,14 @@ const Runner = struct {
                 const output = bench.run(input);
                 warmup_iter += 1;
                 if (timer.read() >= warmup_duration) {
-                    try out.writer().print("  Warmup iterations: {}\n", .{warmup_iter});
-                    try out.writer().print("  Warmup result: {}\n\n", .{output});
+                    std.log.info("  Warmup iterations: {d}\n", .{warmup_iter});
+                    std.log.info("  Warmup result: {d}\n\n", .{output});
                     break;
                 }
             }
         }
 
-        try out.writer().print("  Running {} times...\n", .{n_samples});
+        std.log.info("  Running {d} times...\n", .{n_samples});
         var sample_times: [n_samples]f64 = undefined;
         for (0..n_samples) |i| {
             var timer = std.time.Timer.start() catch @panic("timer error");
@@ -178,13 +176,13 @@ const Runner = struct {
 
         const mean = memSum(f64, &sample_times) / n_samples;
 
-        try out.writer().print("  Mean: {d} ns\n  Min: {d} ns\n  Max: {d} ns\n", .{
+        std.log.info("  Mean: {d} ns\n  Min: {d} ns\n  Max: {d} ns\n", .{
             mean,
             std.mem.min(f64, &sample_times),
             std.mem.max(f64, &sample_times),
         });
 
-        try out.writer().print("\n", .{});
+        std.log.info("\n", .{});
 
         if (self.csv) |csv| {
             try csv.writer().print("{s},{d}\n", .{ name, mean });
@@ -201,8 +199,7 @@ fn memSum(comptime T: type, slice: []const T) T {
 }
 
 fn failArgs(comptime format: []const u8, args: anytype) noreturn {
-    var err = std.io.getStdErr();
-    err.writer().print("invalid arguments: " ++ format ++ "\n", args) catch @panic("failed to print to stderr");
+    std.log.err("invalid arguments: " ++ format ++ "\n", args);
     std.process.exit(1);
 }
 
@@ -248,14 +245,14 @@ pub fn main() !void {
                     enable_baseline = true;
                     defaults = false;
                 } else if (flag.isShort("t") or flag.isLong("threads")) {
-                    const num_threads_str = p.nextValue() orelse failArgs("{} requires a value", .{flag});
-                    const num_threads = std.fmt.parseInt(usize, num_threads_str, 10) catch failArgs("{} must be an integer", .{flag});
                     try num_threads_list.append(num_threads);
+                    const num_threads_str = p.nextValue() orelse failArgs("{any} requires a value", .{flag});
+                    const num_threads = std.fmt.parseInt(usize, num_threads_str, 10) catch failArgs("{any} must be an integer", .{flag});
                     defaults = false;
                 } else if (flag.isShort("h") or flag.isLong("help")) {
                     show_usage = true;
                 } else {
-                    failArgs("{} is a not a valid flag", .{flag});
+                    failArgs("{any} is a not a valid flag", .{flag});
                 }
             },
             .arg => |arg| {
