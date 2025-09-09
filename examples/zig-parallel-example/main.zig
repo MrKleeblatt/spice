@@ -219,8 +219,8 @@ pub fn main() !void {
     var n: ?usize = null;
     var csv: ?std.fs.File = null;
     var enable_baseline = false;
-    var num_threads_list = std.ArrayList(usize).init(gpa.allocator());
-    defer num_threads_list.deinit();
+    var num_threads_list = try std.ArrayList(usize).initCapacity(gpa.allocator(), 1);
+    defer num_threads_list.deinit(gpa.allocator());
     var defaults = true;
     var show_usage = false;
     var no_args = true;
@@ -245,9 +245,9 @@ pub fn main() !void {
                     enable_baseline = true;
                     defaults = false;
                 } else if (flag.isShort("t") or flag.isLong("threads")) {
-                    try num_threads_list.append(num_threads);
                     const num_threads_str = p.nextValue() orelse failArgs("{any} requires a value", .{flag});
                     const num_threads = std.fmt.parseInt(usize, num_threads_str, 10) catch failArgs("{any} must be an integer", .{flag});
+                    try num_threads_list.append(gpa.allocator(), num_threads);
                     defaults = false;
                 } else if (flag.isShort("h") or flag.isLong("help")) {
                     show_usage = true;
@@ -275,7 +275,7 @@ pub fn main() !void {
 
     if (defaults) {
         enable_baseline = true;
-        try num_threads_list.appendSlice(&[_]usize{ 1, 2, 4, 8, 16, 32 });
+        try num_threads_list.appendSlice(gpa.allocator(), &[_]usize{ 1, 2, 4, 8, 16, 32 });
     }
 
     const root = try balancedTree(arena.allocator(), 0, @intCast(n.?));
