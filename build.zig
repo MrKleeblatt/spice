@@ -23,9 +23,11 @@ pub fn build(b: *std.Build) void {
 
     const example = b.addExecutable(.{
         .name = "spice-example",
-        .root_source_file = b.path("examples/zig-parallel-example/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/zig-parallel-example/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     example.root_module.addImport("spice", mod);
     example.root_module.addImport("parg", parg.module("parg"));
